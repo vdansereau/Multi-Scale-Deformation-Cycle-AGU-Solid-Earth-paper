@@ -5,14 +5,12 @@
 %It is used to produce figure 11: discussion.pdf
 
 clear all;
-%path = '/home/danserev/Documents/Rheolef/SEISMAZE/article1/faille/We_0_001/dt_10_5/C_10_4/th_10_10/alpha_4/ddam_10/';
 path = '/home/danserev/Documents/Rheolef/SEISMAZE/article1/faille/We_0_1/dt_10_4/C_10_4/th_10_9/alpha_4/ddam_50/';
 filenb = [1]; %We = 0.1
-%filenb = [2]; %We = 0.001
 
-%U0 = 10^(-9); %prescribed velocity on bottom boundary for We = 0.001
 U0= 10^(-8); %prescribed velocity on bottom boundary for We = 0.1
 
+%% Load output files
 %for i = 1 : 1 : length(filenb)
 i = 1;
 data = load([path, 'test_', int2str(filenb(i)), '.txt'])';
@@ -57,45 +55,31 @@ element.time = [];
 %each element.() array contains : time(1), x(2), y(3), ux(4), uy(5), Ux(6), %Uy(7)
 
 
-%% Calculate d sigma dt and find the local maxima in stress based on this
-
+%% Calculate dsigma/dt and find the local maxima in stress based on this
 macro.dsigma = [0 diff(macro.sigma_x_top)];
 
 
-% Identify threshold for the stress drop using the histogram of dsigma
+%% Identify threshold for the stress drop using dsigma/dt
 %threshold = 1.0*10^(-8); %alpha = 4, ddam = 0.1, We = 0.1
-%threshold = 0.5*10^(-8); %alpha = 4, ddam = 0.3, We = 0.1
 threshold = 1.25*10^(-9); %alpha = 4, ddam = 0.5, We = 0.1
-%threshold = 0.3*10^(-9); %alpha = 4, ddam = 0.5, We = 0.001
-%threshold = 1.0*10^(-9); %alpha = 4, ddam = 0.2, 0.3 We = 0.001
-%threshold = 0.5*10^(-8); %alpha = 4, ddam = 0.1, We = 0.001
-%threshold = 1.0*10^(-8); %alpha = 6, ddam = 0.1, We = 0.001
 
 
+%% Find maxima in sigma
 pks_sigma = find((-macro.dsigma) >= threshold);
 
 %eliminate first macro-rupture
 %pks_sigma(1:3) = []; %for ddam = 0.1, eliminating 3 first cycles
 pks_sigma(1) = []; %for ddam = 0.5, eliminating 1st cycle is enough
 
+%% Find local minima in stress: each local min value of sigma between 2 peaks
+
+for i = 1:length(pks_sigma)-1
+    [mins, ind] = min(macro.sigma_x_top(pks_sigma(i):pks_sigma(i+1)));
+    mins_sigma(i) = pks_sigma(i)+ind;
+end
 
 
 %% Plot time series of surface displacement and damage
-
-% figure1 = figure;
-%     axes1 = axes('Parent',figure1, 'XGrid', 'on', 'YGrid', 'on', 'PlotBoxAspectRatio',[2 1 1], ...
-%     'XMinorTick', 'on', 'YMinorTick', 'on', 'YScale', 'log', ...
-%     'FontSize', 12); 
-%     xlim([0 0.00001]);    
-%     box('on');
-%     hold('all');
-%     ylabel('\it u_{sfc} \rm', 'FontSize', 12); %path = '/home/danserev/Documents/Rheolef/SEISMAZE/article1/faille/test/';
-%     xlabel('time', 'FontSize', 12);
-%     plot(macro.dt*[1:1:length(element.top_left(:,4))], element.top_left(:,4), 'Color', 'k', 'LineWidth', 1.5, 'Parent', axes1);
-% hold on;
-%        
-% saveas(figure1, [path, 'u_x_time.pdf']); 
-
 
 figure1 = figure;
 [AX, H1, H2] = plotyy(macro.dt*[pks_sigma(1):1:length(element.top_left(:,6))], element.top_left(pks_sigma(1):length(element.top_left(:,6)),6), macro.dt*[pks_sigma(1):1:length(element.top_left(:,6))], macro.dam_rate(pks_sigma(1):1:length(element.top_left(:,6))));
@@ -138,54 +122,7 @@ saveas(figure5, [path, 'scatter_usfc_damage.pdf']);
 
 
 
-%% Plot time series of surface displacement
-
-% figure4 = figure;
-%     axes4 = axes('Parent',figure4, 'PlotBoxAspectRatio',[2 1 1], ...
-%     'XMinorTick', 'on', 'YMinorTick', 'on', ...
-%     'FontSize', 12); 
-%     xlim([0 0.00001]);    
-%     box('on');
-%     hold('all');
-%     ylabel('\it \epsilon_{sfc} \rm', 'FontSize', 12); %path = '/home/danserev/Documents/Rheolef/SEISMAZE/article1/faille/test/';
-%     xlabel('time', 'FontSize', 12);
-%     plot(macro.dt*[1:1:length(element.top_left(:,6))], element.top_left(:,6), 'Color', 'k', 'LineWidth', 1.5, 'Parent', axes4);
-% hold on;
-%        
-% saveas(figure4, [path, 'eps_x_time.pdf']); 
-
-
-
-%% Find the local minima in stress: each local min value of sigma between 2 peaks
-
-for i = 1:length(pks_sigma)-1
-    [mins, ind] = min(macro.sigma_x_top(pks_sigma(i):pks_sigma(i+1)));
-    mins_sigma(i) = pks_sigma(i)+ind;
-end
-
-
-
-%% Plot stress time series with the x-velocity and an indication of each stress local maxima and u_sfc
-
-% figure2 = figure;
-%     axes2 = axes('Parent',figure2, 'PlotBoxAspectRatio',[2 1 1], ...
-%     'XMinorTick', 'on', 'YMinorTick', 'on', ...
-%     'FontSize', 12); 
-%     xlim([0 0.00001]);    
-%     ylim([0 0.0000003]);
-%     box('on');
-%     hold('all');
-%     ylabel('\it \sigma_{N} \rm', 'FontSize', 12); 
-%     xlabel('time', 'FontSize', 12);
-%     plot(macro.time, macro.sigma_x_top, 'Color', 'k', 'LineWidth', 1.5, 'Parent', axes2);
-% hold on;
-% 
-% %for i = 1: length(pks_sigma)
-% %    plot([macro.time(pks_sigma(i)) macro.time(pks_sigma(i))],[0 max(macro.sigma_x_top)], 'Color', 'k', 'LineStyle', '--');
-% %end
-%         
-% saveas(figure2, [path, 'stress.pdf']); 
-
+%% Plot time series of macro shear stress and surface x-velocity
 
 figure2 = figure;
 [AX, H1, H2] = plotyy(macro.dt*[pks_sigma(1):1:length(element.top_left(:,4))], macro.sigma_x_top(pks_sigma(1):1:length(element.top_left(:,4))), macro.dt*[pks_sigma(1):1:length(element.top_left(:,4))], element.top_left(pks_sigma(1):length(element.top_left(:,4)),4)-U0/U0 );
@@ -207,6 +144,7 @@ saveas(figure2, [path, 'stress_usfc.pdf']);
 
 %% Divide the surface velocity time series between the peaks in sigma
 %  to look at the behavior of the post-seismic sfc velocities
+%  and to plot the post-seismic velocity vs time for each loading-unloading cycle
 
 %Find the last pks_sigma present in the element.top_left t-series
 int = find(pks_sigma-length(element.top_left) < 1, 1, 'last');
@@ -229,8 +167,6 @@ for i = 1: length(pks_sigma)-1
     
     plot(time, -(u_sfc-U0/U0), 'Color', cc(i,:), 'LineWidth', 1.0, 'Parent', axes3);
     hold on;
-    %instead of max(u_sfc), I should try to find a constant value as the
-    %max surface velocity in the post-seismic period
     
     u_sfc = [];
     time = [];
